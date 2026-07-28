@@ -46,8 +46,8 @@ public class InjectionEntrypoint {
             FileUtils.deleteDirectory(OUTPUT_FOLDER);
         OUTPUT_FOLDER.mkdirs();
 
-        RegistriesExporter.exportRegistries();
-        RegistriesExporter.exportServerRegistries(server);
+//        RegistriesExporter.exportRegistries();
+//        RegistriesExporter.exportServerRegistries(server);
 //        RegistriesExporter.exportRegistries();
         BlockDataExtractor.extractBlockData(server);
         ItemDataExtractor.extractItemData(server);

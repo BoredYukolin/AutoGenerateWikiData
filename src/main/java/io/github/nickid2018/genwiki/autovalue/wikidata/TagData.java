@@ -8,7 +8,7 @@ import java.util.*;
 
 public class TagData extends JsonWikiData {
 
-    private final List<String> values = new ArrayList<>();
+    private final Set<String> values = new TreeSet<>();
 
     public void put(String key) {
         values.add(key);
