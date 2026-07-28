@@ -24,20 +24,23 @@ public class DataCounter<T> {
 
     private final String name;
     private final Function<T, String> objectToString;
+    private final Object2ObjectMap<T, BlockPosEntry> maxPositions = new Object2ObjectOpenHashMap<>();
+    private final Object2ObjectMap<T, BlockPosEntry> minPositions = new Object2ObjectOpenHashMap<>();
 
     public DataCounter(String name, Function<T, String> objectToString) {
         this.name = name;
         this.objectToString = objectToString;
     }
 
-    public void increase(T block, int y) {
+    public void increase(T block, int y, int x, int z) {
         Int2LongMap pair = counter.computeIfAbsent(block, k -> new Int2LongOpenHashMap());
         pair.put(y, pair.getOrDefault(y, 0L) + 1);
-    }
-
-    public void increase(T block, int y, long count) {
-        Int2LongMap pair = counter.computeIfAbsent(block, k -> new Int2LongOpenHashMap());
-        pair.put(y, pair.getOrDefault(y, 0L) + count);
+        if (!maxPositions.containsKey(block) || maxPositions.get(block).y() < y) {
+            maxPositions.put(block, new BlockPosEntry(x, y, z));
+        }
+        if (!minPositions.containsKey(block) || minPositions.get(block).y() > y) {
+            minPositions.put(block, new BlockPosEntry(x, y, z));
+        }
     }
 
     @SneakyThrows
@@ -52,6 +55,28 @@ public class DataCounter<T> {
         builder.append("\t\"maxHeight\": ").append(maxHeight).append(",\n");
         builder.append("\t\"chunkCount\": ").append(chunkCount).append(",\n");
         builder.append("\t\"posProvider\": \"").append(posProvider).append("\",\n");
+
+        builder.append("\t\"maxPosition\": {\n");
+        Map<String, String> maxLines = new TreeMap<>();
+        for (Object2ObjectMap.Entry<T, BlockPosEntry> entry : maxPositions.object2ObjectEntrySet()) {
+            T item = entry.getKey();
+            String name = objectToString.apply(item);
+            maxLines.put(name, entry.getValue().toString());
+        }
+        maxLines.forEach((k, v) -> builder.append("\t\t\"").append(k).append("\": [").append(v).append("],\n"));
+        builder.deleteCharAt(builder.length() - 2);
+        builder.append("\t},\n");
+
+        builder.append("\t\"minPosition\": {\n");
+        Map<String, String> minLines = new TreeMap<>();
+        for (Object2ObjectMap.Entry<T, BlockPosEntry> entry : minPositions.object2ObjectEntrySet()) {
+            T item = entry.getKey();
+            String name = objectToString.apply(item);
+            minLines.put(name, entry.getValue().toString());
+        }
+        minLines.forEach((k, v) -> builder.append("\t\t\"").append(k).append("\": [").append(v).append("],\n"));
+        builder.deleteCharAt(builder.length() - 2);
+        builder.append("\t},\n");
 
         Map<String, String> lines = new TreeMap<>();
         for (Object2ObjectMap.Entry<T, Int2LongMap> entry : counter.object2ObjectEntrySet()) {

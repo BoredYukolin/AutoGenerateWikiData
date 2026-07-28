@@ -5,15 +5,16 @@ import com.google.gson.internal.Streams;
 import com.google.gson.stream.JsonWriter;
 import io.github.nickid2018.genwiki.remap.MojangMapping;
 import io.github.nickid2018.genwiki.remap.RemapProgram;
+import io.github.nickid2018.genwiki.statistic.BlockPosSeedEntry;
+import io.github.nickid2018.genwiki.util.ClassUtils;
 import io.github.nickid2018.genwiki.util.ConfigUtils;
 import io.github.nickid2018.genwiki.util.JsonUtils;
 import io.github.nickid2018.genwiki.util.LanguageUtils;
-import it.unimi.dsi.fastutil.ints.Int2LongMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
-import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
 import joptsimple.*;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -104,7 +106,7 @@ public class GenerateWikiData {
     }
 
     private static void doRemap(File input, File mapping, File output, GenWikiMode mode) throws Exception {
-        MojangMapping format = new MojangMapping(new FileInputStream(mapping));
+        MojangMapping format = mapping != null ? new MojangMapping(new FileInputStream(mapping)) : new MojangMapping();
         RemapProgram program = new RemapProgram(format, input, output);
         RemapSettings.remapSettings(mode, program);
         if (mode.isClient) {
@@ -115,6 +117,7 @@ public class GenerateWikiData {
             program.extractServer();
         program.fillRemapFormat();
         program.remapClasses();
+        program.validate(ClassUtils.readJarContent("remap/api.txt"), mode.isClient);
         if (!mode.isClient)
             program.rePackServer();
         log.info("Remapped jar to {}", output.getAbsolutePath());
@@ -177,6 +180,7 @@ public class GenerateWikiData {
         }
 
         ProcessBuilder builder = newProcess();
+        builder.command().add("--enable-native-access=ALL-UNNAMED");
         builder.command().add("-jar");
         builder.command().add(file);
         builder.command().add("nogui");
@@ -222,6 +226,7 @@ public class GenerateWikiData {
         builder.command().add("-Dfile.encoding=UTF-8");
         builder.command().add("-Dstdout.encoding=UTF-8");
         builder.command().add("-Dstderr.encoding=UTF-8");
+        builder.command().add("--enable-native-access=ALL-UNNAMED");
         builder.command().add("-cp");
         builder.command().add(String.join(File.pathSeparator, collectedLibraries));
         builder.command().add("net.minecraft.client.data.Main");
@@ -252,6 +257,7 @@ public class GenerateWikiData {
         builder.command().add("-Dminecraft.client.jar=" + file);
         builder.command().add("-Dminecraft.launcher.brand=GenWiki");
         builder.command().add("-Dminecraft.launcher.version=1.0");
+        builder.command().add("--enable-native-access=ALL-UNNAMED");
         builder.command().add("-cp");
         builder.command().add(String.join(File.pathSeparator, collectedLibraries));
         builder.command().add(JsonUtils.getStringOrElse(json, "mainClass", "net.minecraft.client.main.Main"));
@@ -470,6 +476,73 @@ public class GenerateWikiData {
                 log.error("Height data mismatches!");
                 return;
             }
+
+            Map<String, Optional<BlockPosSeedEntry>> maxPositionSet = data
+                .stream()
+                .flatMap(obj -> obj
+                    .getAsJsonObject("maxPosition")
+                    .entrySet()
+                    .stream()
+                    .map(entry -> {
+                        JsonArray pos = entry.getValue().getAsJsonArray();
+                        return new ObjectObjectImmutablePair<>(
+                            entry.getKey(),
+                            new BlockPosSeedEntry(
+                                pos.get(0).getAsInt(),
+                                pos.get(1).getAsInt(),
+                                pos.get(2).getAsInt(),
+                                obj.get("worldSeed").getAsLong()
+                            )
+                        );
+                    }))
+                .collect(Collectors.groupingBy(
+                    ObjectObjectImmutablePair::left,
+                    TreeMap::new,
+                    Collectors.mapping(
+                        ObjectObjectImmutablePair::right,
+                        Collectors.maxBy(Comparator.comparingInt(BlockPosSeedEntry::y))
+                    )
+                ));
+            String maxPositionStr = maxPositionSet
+                .entrySet()
+                .stream()
+                .filter(en -> en.getValue().isPresent())
+                .map(en -> "    \"" + en.getKey() + "\": \"" + en.getValue().get() + "\"")
+                .collect(Collectors.joining(",\n"));
+
+            Map<String, Optional<BlockPosSeedEntry>> minPositionSet = data
+                .stream()
+                .flatMap(obj -> obj
+                    .getAsJsonObject("minPosition")
+                    .entrySet()
+                    .stream()
+                    .map(entry -> {
+                        JsonArray pos = entry.getValue().getAsJsonArray();
+                        return new ObjectObjectImmutablePair<>(
+                            entry.getKey(),
+                            new BlockPosSeedEntry(
+                                pos.get(0).getAsInt(),
+                                pos.get(1).getAsInt(),
+                                pos.get(2).getAsInt(),
+                                obj.get("worldSeed").getAsLong()
+                            )
+                        );
+                    }))
+                .collect(Collectors.groupingBy(
+                    ObjectObjectImmutablePair::left,
+                    TreeMap::new,
+                    Collectors.mapping(
+                        ObjectObjectImmutablePair::right,
+                        Collectors.minBy(Comparator.comparingInt(BlockPosSeedEntry::y))
+                    )
+                ));
+            String minPositionStr = minPositionSet
+                .entrySet()
+                .stream()
+                .filter(en -> en.getValue().isPresent())
+                .map(en -> "    \"" + en.getKey() + "\": \"" + en.getValue().get() + "\"")
+                .collect(Collectors.joining(",\n"));
+
             long minHeight = minHeightSet.stream().findFirst().orElse(0L);
             long maxHeight = maxHeightSet.stream().findFirst().orElse(0L);
             Object2ObjectMap<String, LongList> counter = new Object2ObjectOpenHashMap<>();
@@ -495,6 +568,8 @@ public class GenerateWikiData {
                 o.remove(dataName);
                 o.remove("minHeight");
                 o.remove("maxHeight");
+                o.remove("maxPosition");
+                o.remove("minPosition");
                 metadata.add(o);
             });
             StringWriter sw = new StringWriter();
@@ -527,11 +602,26 @@ public class GenerateWikiData {
                               "maxHeight": %d,
                               "metadata": [
                             %s,
+                              "maxPosition": {
+                            %s
+                              },
+                              "minPosition": {
+                            %s
+                              },
                               "%s": {
                             %s
                               }
                             }
-                            """.formatted(totalChunkCount, minHeight, maxHeight, metadataJson, dataName, countsJson);
+                            """.formatted(
+                totalChunkCount,
+                minHeight,
+                maxHeight,
+                metadataJson,
+                maxPositionStr,
+                minPositionStr,
+                dataName,
+                countsJson
+            );
             try (FileWriter writer = new FileWriter(new File(InitializeEnvironment.OUTPUT_FOLDER, name))) {
                 writer.write(output);
             }

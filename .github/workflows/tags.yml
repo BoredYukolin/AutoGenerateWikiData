@@ -17,7 +17,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 25
           cache: gradle
 
       - name: Create wiki data
@@ -26,6 +26,13 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew run
+
+      - name: Run data generator + Vanilla Exporter
+        run: |
+          cd ./run/runtime
+          java -DbundlerMainClass=net.minecraft.data.Main -jar ../remapped/${{ github.event.inputs.version }}-server.jar --output=../data-gen --reports --server
+          cd ../../vanilla-export
+          bash ./vanilla-export.sh
 
       - name: Upload wiki data
         uses: actions/upload-artifact@v4

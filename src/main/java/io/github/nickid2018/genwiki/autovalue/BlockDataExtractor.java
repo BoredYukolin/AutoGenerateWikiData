@@ -92,7 +92,7 @@ public class BlockDataExtractor {
         for (ResourceKey<Block> key : blockKeySet) {
             TAG_DATA.put(key.location().toString());
             /*
-            String blockID = key.location().getPath();
+            String blockID = key.identifier().getPath();
             Block block = blockRegistry.getValue(key);
             ImmutableList<BlockState> states = block.getStateDefinition().getPossibleStates();
             BlockBehaviour.Properties properties = block.properties();
@@ -131,21 +131,26 @@ public class BlockDataExtractor {
                     if (faceShape.isEmpty())
                         continue;
                     List<double[]> aabbArray = faceShape.toAabbs().stream().map(aabb -> switch (direction) {
-                        case DOWN:
-                        case UP:
-                            yield new double[]{aabb.minX, aabb.minZ, aabb.maxX, aabb.maxZ};
-                        case NORTH:
-                        case SOUTH:
-                            yield new double[]{aabb.minX, aabb.minY, aabb.maxX, aabb.maxY};
-                        case WEST:
-                        case EAST:
-                            yield new double[]{aabb.minZ, aabb.minY, aabb.maxZ, aabb.maxY};
+                        case DOWN, UP -> new double[]{aabb.minX, aabb.minZ, aabb.maxX, aabb.maxZ};
+                        case NORTH, SOUTH -> new double[]{aabb.minX, aabb.minY, aabb.maxX, aabb.maxY};
+                        case WEST, EAST -> new double[]{aabb.minZ, aabb.minY, aabb.maxZ, aabb.maxY};
                     }).toList();
                     occlusionMap.put(directionName, aabbArray);
                 }
 
-                OCCLUSION_SHAPE_VALUES.put(blockID + stateName, state.canOcclude(), occlusionMap);
-                LIQUID_COMPUTATION_VALUES.put(blockID + stateName, state.blocksMotion(), faceSturdySet);
+                OCCLUSION_SHAPE_VALUES.put(
+                    blockID + stateName,
+                    state.canOcclude(),
+                    state.getLightEmission(),
+                    state.getLightDampening(),
+                    state.useShapeForLightOcclusion(),
+                    state.isCollisionShapeFullBlock(serverOverworld, BlockPos.ZERO),
+                    state.getShadeBrightness(serverOverworld, BlockPos.ZERO),
+                    state.isViewBlocking(serverOverworld, BlockPos.ZERO),
+                    state.isSolidRender(),
+                    occlusionMap
+                );
+                LIQUID_COMPUTATION_VALUES.put(blockID + stateName, state.legacySolid, faceSturdySet);
             }
 
             makeStatePredicateData(
@@ -168,7 +173,6 @@ public class BlockDataExtractor {
             BURN_ODDS.put(blockID, ((FireBlock) Blocks.FIRE).getBurnOdds(defaultBlockState));
             IGNITE_ODDS.put(blockID, ((FireBlock) Blocks.FIRE).getIgniteOdds(defaultBlockState));
 
-            Map<Property<?>, Comparable<?>> defaultStateMap = defaultBlockState.getValues();
             BLOCK_PROPERTIES.put(blockID);
             for (Map.Entry<Property<?>, Comparable<?>> entry : defaultStateMap.entrySet()) {
                 Property property = entry.getKey();
@@ -211,12 +215,12 @@ public class BlockDataExtractor {
 
     public static String computePushReaction(Block block, BlockBehaviour.Properties properties, float destroyTime, String blockID) {
         if (OVERRIDE_BLOCK_PUSH_REACTION.contains(blockID))
-            return "BLOCK";
+            return "IMMOVEABLE";
         if (destroyTime == -1.0f)
-            return "BLOCK";
+            return "IMMOVEABLE";
         String pushReaction = properties.pushReaction.name();
-        if (block instanceof EntityBlock && pushReaction.equals("NORMAL"))
-            return "BLOCK";
+        if (block.defaultBlockState().hasBlockEntity() && pushReaction.equals("PUSH_PULL"))
+            return "IMMOVEABLE";
         return pushReaction;
     }
 

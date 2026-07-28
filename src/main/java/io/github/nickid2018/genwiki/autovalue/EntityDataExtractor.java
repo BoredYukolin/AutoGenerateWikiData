@@ -72,7 +72,7 @@ public class EntityDataExtractor {
         log.info("Found {} entity sync data fields", entitySyncDataNames.size());
 
         for (ResourceKey<EntityType<?>> key : BuiltInRegistries.ENTITY_TYPE.registryKeySet()) {
-            String entityID = key.location().getPath();
+            String entityID = key.identifier().getPath();
 
             EntityType<?> entity = BuiltInRegistries.ENTITY_TYPE.getValue(key);
             MOB_CATEGORY.put(entityID, entity.getCategory().name());
@@ -93,12 +93,12 @@ public class EntityDataExtractor {
         }
 
         for (ResourceKey<MobEffect> effectKey : BuiltInRegistries.MOB_EFFECT.registryKeySet()) {
-            String effectID = effectKey.location().getPath();
+            String effectID = effectKey.identifier().getPath();
             MobEffect effect = BuiltInRegistries.MOB_EFFECT.getValue(effectKey);
 
             EFFECT_CATEGORY.put(effectID, effect.getCategory().name());
             EFFECT_COLOR.put(effectID, effect.getColor());
-            EFFECT_INSTANTANEOUS.put(effectID, effect.isInstantenous());
+            EFFECT_INSTANTANEOUS.put(effectID, effect.isInstantaneous());
 
             EFFECT_CANNOT_AFFECT.put(effectID);
             for (Map.Entry<String, LivingEntity> entry : livingEntityMap.entrySet()) {
@@ -112,7 +112,7 @@ public class EntityDataExtractor {
         }
 
         for (ResourceKey<Potion> potionEffectKey : BuiltInRegistries.POTION.registryKeySet()) {
-            String potionEffectID = potionEffectKey.location().getPath();
+            String potionEffectID = potionEffectKey.identifier().getPath();
             Potion potionEffect = BuiltInRegistries.POTION.getValue(potionEffectKey);
 
             POTION_EFFECT.put(
@@ -125,7 +125,7 @@ public class EntityDataExtractor {
                 int amplifier = effectInstance.getAmplifier();
                 POTION_EFFECT.addEffect(
                     potionEffectID,
-                    effect.unwrapKey().orElseThrow().location().getPath(),
+                    effect.unwrapKey().orElseThrow().identifier().getPath(),
                     amplifier,
                     effectInstance.getDuration()
                 );
@@ -133,7 +133,7 @@ public class EntityDataExtractor {
                     amplifier,
                     LanguageUtils.sneakyExceptionBiConsumer((attribute, attributeModifier) -> POTION_EFFECT.addAttributeModifier(
                         potionEffectID,
-                        attribute.unwrapKey().orElseThrow().location().getPath(),
+                        attribute.unwrapKey().orElseThrow().identifier().getPath(),
                         attributeModifier.amount(),
                         attributeModifier.operation().getSerializedName()
                     ))
@@ -142,7 +142,7 @@ public class EntityDataExtractor {
         }
 
         for (ResourceKey<Attribute> attributeKey : BuiltInRegistries.ATTRIBUTE.registryKeySet()) {
-            String attributeID = attributeKey.location().getPath();
+            String attributeID = attributeKey.identifier().getPath();
             Attribute attribute = BuiltInRegistries.ATTRIBUTE.getValue(attributeKey);
             ATTRIBUTE_SENTIMENT.put(attributeID, attribute.sentiment.name());
             ATTRIBUTE_DEFAULT_VALUE.put(attributeID, attribute.defaultValue);
@@ -153,15 +153,15 @@ public class EntityDataExtractor {
             }
         }
 
-        WikiData.write(MOB_CATEGORY, "entity_mob_category.txt");
-        WikiData.write(EFFECT_CATEGORY, "mob_effect_category.txt");
-        WikiData.write(EFFECT_COLOR, "mob_effect_color.txt");
-        WikiData.write(EFFECT_INSTANTANEOUS, "mob_effect_instantaneous.txt");
-        WikiData.write(EFFECT_CANNOT_AFFECT, "mob_effect_cannot_affect.txt");
-        WikiData.write(POTION_EFFECT, "potion_effect.txt");
-        WikiData.write(ATTRIBUTE_SENTIMENT, "attribute_sentiment.txt");
-        WikiData.write(ATTRIBUTE_RANGE, "attribute_range.txt");
-        WikiData.write(ATTRIBUTE_DEFAULT_VALUE, "attribute_default_value.txt");
-        WikiData.write(ENTITY_SYNC, "entity_sync.json");
+        WikiData.write(MOB_CATEGORY, "entity/mob_category.txt");
+        WikiData.write(EFFECT_CATEGORY, "mob_effect/category.txt");
+        WikiData.write(EFFECT_COLOR, "mob_effect/color.txt");
+        WikiData.write(EFFECT_INSTANTANEOUS, "mob_effect/instantaneous.txt");
+        WikiData.write(EFFECT_CANNOT_AFFECT, "mob_effect/cannot_affect.txt");
+        WikiData.write(POTION_EFFECT, "mob_effect/potion_effect.txt");
+        WikiData.write(ATTRIBUTE_SENTIMENT, "attribute/sentiment.txt");
+        WikiData.write(ATTRIBUTE_RANGE, "attribute/range.txt");
+        WikiData.write(ATTRIBUTE_DEFAULT_VALUE, "attribute/default_value.txt");
+        WikiData.write(ENTITY_SYNC, "entity_sync_data.json");
     }
 }

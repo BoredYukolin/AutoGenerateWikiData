@@ -7,6 +7,8 @@ import org.jline.terminal.TerminalBuilder;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 
+import java.util.stream.StreamSupport;
+
 public class RemapSettings {
     public static final String INJECT_POINT_CLASS = "net.minecraft.server.MinecraftServer";
     public static final String INJECT_METHOD = "tickChildren";
@@ -33,14 +35,6 @@ public class RemapSettings {
     private static void commonServerSettings(RemapProgram remapProgram) {
         remapProgram.addPostTransform(
             "net.minecraft.world.flag.FeatureFlagRegistry",
-            ExtendAccessTransform.FIELD
-        );
-        remapProgram.addPostTransform(
-            "net.minecraft.world.level.biome.MobSpawnSettings",
-            ExtendAccessTransform.FIELD
-        );
-        remapProgram.addPostTransform(
-            "net.minecraft.world.level.block.state.BlockBehaviour$Properties",
             ExtendAccessTransform.FIELD
         );
         remapProgram.addPostTransform(
@@ -120,6 +114,10 @@ public class RemapSettings {
     }
 
     public static void remapSettings(GenWikiMode mode, RemapProgram remapProgram) {
+        remapProgram.addPostTransform(
+            "net.minecraft.world.level.block.state.BlockBehaviour$Properties",
+            ExtendAccessTransform.FIELD
+        );
         if (mode == GenWikiMode.STATISTICS) {
             commonServerSettings(remapProgram);
             remapProgram.addPostTransform(
@@ -207,6 +205,27 @@ public class RemapSettings {
                 )
             );
             remapProgram.addPostTransform(
+                "net.minecraft.world.level.gamerules.GameRules",
+                new MethodTransform(
+                    "registerInteger",
+                    "(Ljava/lang/String;Lnet/minecraft/world/level/gamerules/GameRuleCategory;IIILnet/minecraft/world/flag/FeatureFlagSet;)Lnet/minecraft/world/level/gamerules/GameRule;",
+                    methodNode -> {
+                        InsnList list = new InsnList();
+                        list.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                        list.add(new VarInsnNode(Opcodes.ILOAD, 3));
+                        list.add(new VarInsnNode(Opcodes.ILOAD, 4));
+                        list.add(new MethodInsnNode(
+                            Opcodes.INVOKESTATIC,
+                            "io/github/nickid2018/genwiki/autovalue/GameRuleDataExtractor",
+                            "addGameRuleRange",
+                            "(Ljava/lang/String;II)V",
+                            false
+                        ));
+                        methodNode.instructions.insert(list);
+                    }
+                )
+            );
+            remapProgram.addPostTransform(
                 "net.minecraft.world.entity.ai.attributes.Attribute",
                 ExtendAccessTransform.FIELD
             );
@@ -219,8 +238,8 @@ public class RemapSettings {
                 ExtendAccessTransform.FIELD
             );
             remapProgram.addPostTransform(
-                "net.minecraft.world.level.block.entity.FuelValues",
-                ExtendAccessTransform.FIELD
+                "net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity",
+                ExtendAccessTransform.METHOD
             );
             remapProgram.addInjectEntries(new IncludeJarPackages("io.github.nickid2018.genwiki.autovalue"));
         } else {
@@ -243,51 +262,44 @@ public class RemapSettings {
                 )
             );
             remapProgram.addPostTransform(
-                "net.minecraft.client.renderer.GameRenderer",
-                new AddMethodTransform(() -> {
-                    MethodNode methodNode = new MethodNode(
-                        Opcodes.ACC_PUBLIC,
-                        "getProjectionMatrixWithInjection",
-                        "(F)Lorg/joml/Matrix4f;",
-                        null,
-                        null
-                    );
-                    methodNode.instructions.add(new VarInsnNode(Opcodes.ALOAD, 0));
-                    methodNode.instructions.add(new VarInsnNode(Opcodes.FLOAD, 1));
-                    methodNode.instructions.add(new MethodInsnNode(
-                        Opcodes.INVOKEVIRTUAL,
-                        "net/minecraft/client/renderer/GameRenderer",
-                        "getProjectionMatrix",
-                        "(F)Lorg/joml/Matrix4f;",
-                        false
-                    ));
-                    methodNode.instructions.add(new MethodInsnNode(
-                        Opcodes.INVOKESTATIC,
-                        "io/github/nickid2018/genwiki/iso/ISOInjectionEntryPoints",
-                        "getProjectionMatrixInjection",
-                        "(Lorg/joml/Matrix4f;)Lorg/joml/Matrix4f;",
-                        false
-                    ));
-                    methodNode.instructions.add(new InsnNode(Opcodes.ARETURN));
-                    return methodNode;
-                })
+                "net.minecraft.client.Camera",
+                new RenameMethodTransform("update", "(Lnet/minecraft/client/DeltaTracker;)V", "updateSource")
             );
             remapProgram.addPostTransform(
-                "net.minecraft.client.renderer.GameRenderer",
-                new MethodTransform(
-                    "renderLevel",
-                    null,
-                    methodNode -> Streams
-                        .stream(methodNode.instructions.iterator())
-                        .filter(insnNode -> insnNode instanceof MethodInsnNode)
-                        .map(insnNode -> (MethodInsnNode) insnNode)
-                        .filter(insnNode -> insnNode.name.equals("getProjectionMatrix"))
-                        .findFirst()
-                        .ifPresent(insnNode -> insnNode.name = "getProjectionMatrixWithInjection")
+                "net.minecraft.client.Camera",
+                new AddMethodTransform(
+                    () -> {
+                        MethodNode methodNode = new MethodNode(
+                            Opcodes.ACC_PUBLIC,
+                            "update",
+                            "(Lnet/minecraft/client/DeltaTracker;)V",
+                            null,
+                            null
+                        );
+                        methodNode.instructions.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                        methodNode.instructions.add(new VarInsnNode(Opcodes.ALOAD, 1));
+                        methodNode.instructions.add(new MethodInsnNode(
+                            Opcodes.INVOKEVIRTUAL,
+                            "net/minecraft/client/Camera",
+                            "updateSource",
+                            "(Lnet/minecraft/client/DeltaTracker;)V",
+                            false
+                        ));
+                        methodNode.instructions.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                        methodNode.instructions.add(new MethodInsnNode(
+                            Opcodes.INVOKESTATIC,
+                            "io/github/nickid2018/genwiki/iso/ISOInjectionEntryPoints",
+                            "overrideProjection",
+                            "(Lnet/minecraft/client/Camera;)V",
+                            false
+                        ));
+                        methodNode.instructions.add(new InsnNode(Opcodes.RETURN));
+                        return methodNode;
+                    }
                 )
             );
             remapProgram.addPostTransform(
-                "net.minecraft.client.renderer.RenderStateShard",
+                "net.minecraft.client.renderer.rendertype.TextureTransform",
                 new MethodTransform(
                     "setupGlintTexturing",
                     null,
@@ -390,31 +402,21 @@ public class RemapSettings {
                     methodNode -> {
                         methodNode.instructions.clear();
                         methodNode.tryCatchBlocks.clear();
-                        methodNode.instructions.add(new TypeInsnNode(Opcodes.NEW, "org/joml/Vector4f"));
+                        methodNode.instructions.add(new TypeInsnNode(Opcodes.NEW, "net/minecraft/client/renderer/fog/FogData"));
                         methodNode.instructions.add(new InsnNode(Opcodes.DUP));
-                        methodNode.instructions.add(new MethodInsnNode(Opcodes.INVOKESPECIAL, "org/joml/Vector4f", "<init>", "()V", false));
-                        methodNode.instructions.add(new InsnNode(Opcodes.ARETURN));
-                    }
-                )
-            );
-            remapProgram.addPostTransform(
-                "net.minecraft.client.renderer.fog.FogRenderer",
-                new MethodTransform(
-                    "computeFogColor",
-                    null,
-                    methodNode -> {
-                        methodNode.instructions.clear();
-                        methodNode.tryCatchBlocks.clear();
-                        methodNode.instructions.add(new TypeInsnNode(Opcodes.NEW, "org/joml/Vector4f"));
+                        methodNode.instructions.add(new MethodInsnNode(Opcodes.INVOKESPECIAL, "net/minecraft/client/renderer/fog/FogData", "<init>", "()V", false));
                         methodNode.instructions.add(new InsnNode(Opcodes.DUP));
-                        methodNode.instructions.add(new InsnNode(Opcodes.FCONST_0));
-                        methodNode.instructions.add(new MethodInsnNode(
-                            Opcodes.INVOKESPECIAL,
-                            "org/joml/Vector4f",
-                            "<init>",
-                            "(F)V",
-                            false
-                        ));
+                        methodNode.instructions.add(new LdcInsnNode(Float.MAX_VALUE));
+                        methodNode.instructions.add(new FieldInsnNode(Opcodes.PUTFIELD, "net/minecraft/client/renderer/fog/FogData", "environmentalStart", "F"));
+                        methodNode.instructions.add(new InsnNode(Opcodes.DUP));
+                        methodNode.instructions.add(new LdcInsnNode(Float.MAX_VALUE));
+                        methodNode.instructions.add(new FieldInsnNode(Opcodes.PUTFIELD, "net/minecraft/client/renderer/fog/FogData", "environmentalEnd", "F"));
+                        methodNode.instructions.add(new InsnNode(Opcodes.DUP));
+                        methodNode.instructions.add(new LdcInsnNode(Float.MAX_VALUE));
+                        methodNode.instructions.add(new FieldInsnNode(Opcodes.PUTFIELD, "net/minecraft/client/renderer/fog/FogData", "renderDistanceStart", "F"));
+                        methodNode.instructions.add(new InsnNode(Opcodes.DUP));
+                        methodNode.instructions.add(new LdcInsnNode(Float.MAX_VALUE));
+                        methodNode.instructions.add(new FieldInsnNode(Opcodes.PUTFIELD, "net/minecraft/client/renderer/fog/FogData", "renderDistanceEnd", "F"));
                         methodNode.instructions.add(new InsnNode(Opcodes.ARETURN));
                     }
                 )
@@ -460,14 +462,16 @@ public class RemapSettings {
                     }
                 )
             );
+            remapProgram.addPostTransform("net.minecraft.client.Camera", ExtendAccessTransform.FIELD);
+            remapProgram.addPostTransform("net.minecraft.client.renderer.Projection", ExtendAccessTransform.FIELD);
             remapProgram.addInjectEntries(new IncludeJarPackages("io.github.nickid2018.genwiki.iso"));
             remapProgram.addInjectEntries(new IncludeJarPackages("io.github.nickid2018.genwiki.util"));
             remapProgram.addInjectEntries(new SingleFile(
-                "transparency.fsh",
+                    "transparency.fsh",
                 "assets/minecraft/shaders/post/transparency.fsh"
             ));
             remapProgram.addInjectEntries(new SingleFile(
-                "lightmap.fsh",
+                    "lightmap.fsh",
                 "assets/minecraft/shaders/core/lightmap.fsh"
             ));
         }
