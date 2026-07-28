@@ -52,7 +52,7 @@ public class InjectionEntrypoint {
         BlockDataExtractor.extractBlockData(server);
         ItemDataExtractor.extractItemData(server);
 //        EntityDataExtractor.extractEntityData(server);
-////        EnchantmentDataExtractor.extractEnchantmentData(server);
+//        EnchantmentDataExtractor.extractEnchantmentData(server);
 //        GameRuleDataExtractor.extractGameRuleData(server);
 
         throw new RuntimeException("Program exited, wiki data has been written.");
