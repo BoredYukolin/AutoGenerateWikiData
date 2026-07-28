@@ -1,9 +1,9 @@
-name: Create Chunk Statistics
+name: Generate tags
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to create'
+        description: 'Minecraft Version'
         required: true
 
 jobs:
@@ -20,16 +20,15 @@ jobs:
           java-version: 21
           cache: gradle
 
-      - name: Create injected
+      - name: Create wiki data
         env:
           MAKE_VERSION: ${{ github.event.inputs.version }}
         run: |
           chmod +x gradlew
-          ./gradlew runStatisticsNotRun
+          ./gradlew run
 
-      - name: Upload injected
+      - name: Upload wiki data
         uses: actions/upload-artifact@v4
         with:
-          name: statistics-maker-${{ github.event.inputs.version }}
-          path: |
-            run/remapped/*.jar
+          name: tags-${{ github.event.inputs.version }}
+          path: run/output

@@ -47,13 +47,13 @@ public class InjectionEntrypoint {
             FileUtils.deleteDirectory(OUTPUT_FOLDER);
         OUTPUT_FOLDER.mkdirs();
 
-        RegistriesExporter.exportRegistries();
+//        RegistriesExporter.exportRegistries();
         BlockDataExtractor.extractBlockData(server);
         ItemDataExtractor.extractItemData(server);
-        EntityDataExtractor.extractEntityData(server);
-        BiomeDataExtractor.extractBiomeData(server);
-        EnchantmentDataExtractor.extractEnchantmentData(server);
-        GameRuleDataExtractor.extractGameRuleData(server);
+//        EntityDataExtractor.extractEntityData(server);
+//        BiomeDataExtractor.extractBiomeData(server);
+//        EnchantmentDataExtractor.extractEnchantmentData(server);
+//        GameRuleDataExtractor.extractGameRuleData(server);
 
         throw new RuntimeException("Program exited, wiki data has been written.");
     }

@@ -54,12 +54,14 @@ public class BlockDataExtractor {
     private static final PairMapWikiData<String, String> BLOCK_PROPERTIES = new PairMapWikiData<>();
     private static final OcclusionWikiData OCCLUSION_SHAPE_VALUES = new OcclusionWikiData();
     private static final LiquidComputationWikiData LIQUID_COMPUTATION_VALUES = new LiquidComputationWikiData();
+    private static final TagData TAG_DATA = new TagData();
 
     @SneakyThrows
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static void extractBlockData(MinecraftServer serverObj) {
         DefaultedRegistry<Block> blockRegistry = BuiltInRegistries.BLOCK;
         Set<ResourceKey<Block>> blockKeySet = blockRegistry.registryKeySet();
+        /*
         ServerLevel serverOverworld = serverObj.overworld();
 
         Map<Object, String> revPropertyMap = new HashMap<>();
@@ -86,8 +88,10 @@ public class BlockDataExtractor {
             if (obj instanceof MapColor mapColor)
                 mapColorMap.put(mapColor.id, field.getName());
         }
-
+        */
         for (ResourceKey<Block> key : blockKeySet) {
+            TAG_DATA.put(key.location().toString());
+            /*
             String blockID = key.location().getPath();
             Block block = blockRegistry.getValue(key);
             ImmutableList<BlockState> states = block.getStateDefinition().getPossibleStates();
@@ -170,8 +174,9 @@ public class BlockDataExtractor {
                 Property property = entry.getKey();
                 BLOCK_PROPERTIES.putNew(blockID, revPropertyMap.get(property), property.getName(entry.getValue()));
             }
+            */
         }
-
+        /*
         PUSH_REACTION_EXCEPT.putUnknown("piston");
         PUSH_REACTION_EXCEPT.putUnknown("sticky_piston");
 
@@ -193,6 +198,8 @@ public class BlockDataExtractor {
         WikiData.write(BLOCK_PROPERTIES, "block_properties.txt");
         WikiData.write(OCCLUSION_SHAPE_VALUES, "block_occlusion_shape.json");
         WikiData.write(LIQUID_COMPUTATION_VALUES, "block_liquid_computation.json");
+         */
+        WikiData.write(TAG_DATA, "all_blocks.json");
     }
 
     private static final Set<String> OVERRIDE_BLOCK_PUSH_REACTION = Set.of(

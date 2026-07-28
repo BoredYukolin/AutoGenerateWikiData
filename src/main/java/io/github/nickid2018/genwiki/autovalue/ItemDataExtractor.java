@@ -32,12 +32,15 @@ public class ItemDataExtractor {
         .setFallbackNil(true);
     private static final AttributeModifiersWikiData ATTRIBUTE_MODIFIERS = new AttributeModifiersWikiData();
     private static final CodecWikiData DEFAULT_COMPONENTS = new CodecWikiData();
+    private static final TagData TAG_DATA = new TagData();
 
     @SneakyThrows
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static void extractItemData(MinecraftServer serverObj) {
         Map<Item, String> itemKeyMap = new HashMap<>();
         for (ResourceKey<Item> itemKey : BuiltInRegistries.ITEM.registryKeySet()) {
+            TAG_DATA.put(itemKey.location().toString());
+            /*
             String itemID = itemKey.location().getPath();
             Item item = BuiltInRegistries.ITEM.getValue(itemKey);
             itemKeyMap.put(item, itemID);
@@ -80,8 +83,10 @@ public class ItemDataExtractor {
             JsonObject all = new JsonObject();
             data.forEach(all::add);
             DEFAULT_COMPONENTS.add(itemID, all);
+             */
         }
 
+        /*
         CreativeModeTabs.tryRebuildTabContents(InjectionEntrypoint.featureFlagSet, true, serverObj.registryAccess());
 
         for (ResourceKey<CreativeModeTab> key : BuiltInRegistries.CREATIVE_MODE_TAB.registryKeySet()) {
@@ -111,5 +116,7 @@ public class ItemDataExtractor {
         WikiData.write(FOOD_PROPERTIES, "item_food_properties.txt");
         WikiData.write(ATTRIBUTE_MODIFIERS, "item_attribute_modifiers.txt");
         WikiData.write(DEFAULT_COMPONENTS, "item_default_components.json");
+         */
+        WikiData.write(TAG_DATA, "all_items.json");
     }
 }
