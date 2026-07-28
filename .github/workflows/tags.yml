@@ -20,21 +20,19 @@ jobs:
           java-version: 25
           cache: gradle
 
-      - name: Create wiki data
+      - name: Create tag data
         env:
           MAKE_VERSION: ${{ github.event.inputs.version }}
         run: |
           chmod +x gradlew
           ./gradlew run
 
-      - name: Run data generator + Vanilla Exporter
+      - name: Run tag generator
         run: |
           cd ./run/runtime
           java -DbundlerMainClass=net.minecraft.data.Main -jar ../remapped/${{ github.event.inputs.version }}-server.jar --output=../data-gen --reports --server
-          cd ../../vanilla-export
-          bash ./vanilla-export.sh
 
-      - name: Upload wiki data
+      - name: Upload tag data
         uses: actions/upload-artifact@v4
         with:
           name: tags-${{ github.event.inputs.version }}
