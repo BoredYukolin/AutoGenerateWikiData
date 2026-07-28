@@ -90,7 +90,7 @@ public class BlockDataExtractor {
         }
         */
         for (ResourceKey<Block> key : blockKeySet) {
-            TAG_DATA.put(key.location().toString());
+            TAG_DATA.put(key.identifier().toString());
             /*
             String blockID = key.identifier().getPath();
             Block block = blockRegistry.getValue(key);

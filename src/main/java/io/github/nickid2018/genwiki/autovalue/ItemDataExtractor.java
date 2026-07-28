@@ -30,10 +30,10 @@ public class ItemDataExtractor {
 
     @SneakyThrows
     public static void extractItemData(MinecraftServer serverObj) {
-        Map<Item, String> itemKeyMap = new HashMap<>();
-        AbstractFurnaceBlockEntity furnace = new FurnaceBlockEntity(BlockPos.ZERO, Blocks.FURNACE.defaultBlockState());
+//        Map<Item, String> itemKeyMap = new HashMap<>();
+//        AbstractFurnaceBlockEntity furnace = new FurnaceBlockEntity(BlockPos.ZERO, Blocks.FURNACE.defaultBlockState());
         for (ResourceKey<Item> itemKey : BuiltInRegistries.ITEM.registryKeySet()) {
-            TAG_DATA.put(itemKey.location().toString());
+            TAG_DATA.put(itemKey.identifier().toString());
             /*
             String itemID = itemKey.identifier().getPath();
             Item item = BuiltInRegistries.ITEM.getValue(itemKey);
@@ -55,6 +55,7 @@ public class ItemDataExtractor {
                 FOOD_PROPERTIES.put(itemID, foodProperties.nutrition(), foodProperties.saturation());
             } else
                 FOOD_PROPERTIES.put(itemID, 0, 0);
+             */
         }
 
         /*
